@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+venv/
+.venv/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+eval/results/*.json
+eval/results/*.png
