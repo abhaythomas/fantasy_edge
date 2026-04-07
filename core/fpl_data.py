@@ -11,12 +11,19 @@ Key endpoints:
 """
 
 import os
+import sys
 import json
 import time
 import requests
 import pandas as pd
 from datetime import datetime
 from typing import Optional
+
+# Fix emoji printing on Windows (cp1252 terminal)
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass
 
 BASE_URL = "https://fantasy.premierleague.com/api"
 CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
@@ -57,7 +64,13 @@ def _load_cache() -> Optional[dict]:
             cache = json.load(f)
         age_minutes = (time.time() - cache["timestamp"]) / 60
         print(f"📦 Using cached data ({age_minutes:.0f} minutes old)")
-        return cache["data"]
+        data = cache["data"]
+        # Reconstruct DataFrames from cached lists
+        if isinstance(data.get("players"), list):
+            data["players"] = pd.DataFrame(data["players"])
+        if isinstance(data.get("fixtures"), list):
+            data["fixtures"] = pd.DataFrame(data["fixtures"])
+        return data
     except Exception:
         return None
 
@@ -253,13 +266,13 @@ def get_all_data(force_refresh: bool = False) -> dict:
     for team_id in players_df["team_id"].unique():
         team_fix = get_team_fixtures(fixtures_df, team_id, num_gw=3)
         avg_diff = sum(f["difficulty"] for f in team_fix) / len(team_fix) if team_fix else 3
-        fixture_scores[team_id] = {
+        fixture_scores[int(team_id)] = {
             "avg_difficulty": round(avg_diff, 1),
             "next_fixtures": team_fix,
         }
 
     players_df["fixture_difficulty"] = players_df["team_id"].map(
-        lambda x: fixture_scores.get(x, {}).get("avg_difficulty", 3)
+        lambda x: fixture_scores.get(int(x), {}).get("avg_difficulty", 3)
     )
 
     result = {

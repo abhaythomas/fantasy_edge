@@ -1,10 +1,10 @@
 {
-  "favorite_team": null,
+  "favorite_team": "Liverpool",
   "must_include_players": [],
   "never_pick_players": [],
   "prefer_budget_picks": false,
   "captain_preference": null,
   "risk_tolerance": "medium",
   "notes": [],
-  "updated_at": null
+  "updated_at": "2026-04-07T13:31:47.161974"
 }
