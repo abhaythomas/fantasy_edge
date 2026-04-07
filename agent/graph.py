@@ -118,7 +118,7 @@ def build_agent():
     and produces a final text response without calling any tool.
     """
     # Initialize LLM with tools
-    llm = ChatGroq(model=GROQ_MODEL, temperature=0.2)
+    llm = ChatGroq(model=GROQ_MODEL, temperature=0)
     llm_with_tools = llm.bind_tools(ALL_TOOLS)
 
     # ── Agent Node ───────────────────────────────────────────────────

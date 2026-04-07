@@ -1,5 +1,4 @@
 # FantasyEdge v2 — Complete Project Summary
-# Use this document to continue development in a new chat session
 
 ## PROJECT OVERVIEW
 
