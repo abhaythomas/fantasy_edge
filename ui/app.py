@@ -426,19 +426,8 @@ with st.sidebar:
     st.divider()
 
     st.markdown("**Try asking:**")
-    examples = [
-        "Pick my team for this gameweek",
-        "Is Salah worth the price?",
-        "Best midfielders under £8m",
-        "Who should I captain?",
-        "Compare Haaland vs Watkins",
-        "I have Palmer and Saka, build around them",
-        "Which teams have easy fixtures?",
-        "Remember that I'm a Liverpool fan",
-    ]
-    for ex in examples:
-        if st.button(ex, use_container_width=True, key=f"ex_{ex[:20]}"):
-            st.session_state.prefill = ex
+    if st.button("Pick my team for this gameweek", use_container_width=True, key="ex_pick_team"):
+        st.session_state.prefill = "Pick my team for this gameweek"
 
     st.divider()
 
