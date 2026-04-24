@@ -173,6 +173,16 @@ def chat(message: str, history: list = None) -> dict:
         dict with 'response' (text), 'tool_calls' (list of tools used),
         'messages' (full message history for continuity)
     """
+    if not os.getenv("GROQ_API_KEY"):
+        return {
+            "response": (
+                "Missing GROQ_API_KEY. Add it to your environment (or Streamlit secrets) "
+                "to enable agent reasoning and tool orchestration."
+            ),
+            "tool_calls": [],
+            "messages": history or [],
+        }
+
     agent = build_agent()
 
     # Build message list with history
@@ -182,7 +192,17 @@ def chat(message: str, history: list = None) -> dict:
     messages.append(HumanMessage(content=message))
 
     # Run the agent
-    result = agent.invoke({"messages": messages})
+    try:
+        result = agent.invoke({"messages": messages}, config={"recursion_limit": 40})
+    except Exception as e:
+        return {
+            "response": (
+                "I hit an internal agent/tool execution error and stopped safely. "
+                f"Details: {e}"
+            ),
+            "tool_calls": [],
+            "messages": messages,
+        }
 
     # Extract the final response and tool calls
     all_messages = result["messages"]

@@ -36,6 +36,17 @@ def _ensure_data():
     return _data_cache
 
 
+def _load_data_or_error() -> tuple:
+    """Safely load data and return (data, error_message)."""
+    try:
+        return _ensure_data(), ""
+    except Exception as e:
+        return None, (
+            "I couldn't load FPL data right now, so this tool call could not complete. "
+            f"Error: {e}. Try again in a moment."
+        )
+
+
 # ── Tool 1: Get Player Stats ────────────────────────────────────────
 
 @tool
@@ -62,7 +73,9 @@ def get_player_stats(
         player_name: Search for a specific player by name.
         limit: Number of players to return (default 10).
     """
-    data = _ensure_data()
+    data, error = _load_data_or_error()
+    if error:
+        return error
     players_df = data["players"]
 
     # Specific player lookup
@@ -125,7 +138,9 @@ def get_fixtures(team: str, num_gameweeks: int = 3) -> str:
         team: Team name (e.g. "Arsenal", "Liverpool", "Man City").
         num_gameweeks: Number of upcoming gameweeks to check (default 3).
     """
-    data = _ensure_data()
+    data, error = _load_data_or_error()
+    if error:
+        return error
     teams = data["teams"]
     fixtures_df = data["fixtures"]
 
@@ -170,7 +185,9 @@ def check_availability(player_name: str) -> str:
     Args:
         player_name: The player's name (e.g. "Salah", "Haaland", "Saka").
     """
-    data = _ensure_data()
+    data, error = _load_data_or_error()
+    if error:
+        return error
     players_df = data["players"]
 
     match = players_df[
@@ -232,7 +249,9 @@ def build_squad(
         budget: Total budget in millions (default 100.0).
         save_result: If true, saves the squad to memory for future reference.
     """
-    data = _ensure_data()
+    data, error = _load_data_or_error()
+    if error:
+        return error
     players_df = data["players"]
 
     # Apply user preferences
@@ -248,22 +267,25 @@ def build_squad(
     locked = list(set(locked))
     excluded = list(set(excluded))
 
-    result = optimize_squad(
-        players_df=players_df,
-        locked_players=locked if locked else None,
-        budget=budget,
-        exclude_players=excluded if excluded else None,
-    )
+    try:
+        result = optimize_squad(
+            players_df=players_df,
+            locked_players=locked if locked else None,
+            budget=budget,
+            exclude_players=excluded if excluded else None,
+        )
+    except Exception as e:
+        return f"Squad builder failed unexpectedly: {e}"
 
     if save_result:
-        squad_names = [p["name"] for p in result["squad"]]
-        update_squad(squad_names, result["remaining_budget"])
+        squad_names = [p["name"] for p in result.get("squad", [])]
+        update_squad(squad_names, result.get("remaining_budget", 0.0))
 
     summary = format_squad_summary(result)
 
     # Add confidence overview
     confidences = {"HIGH": 0, "MEDIUM": 0, "LOW": 0}
-    for p in result["starting_xi"]:
+    for p in result.get("starting_xi", []):
         conf = p.get("confidence", "MEDIUM")
         confidences[conf] = confidences.get(conf, 0) + 1
 
@@ -336,7 +358,9 @@ def get_gameweek_info() -> str:
     Returns the gameweek number, deadline, and whether it's currently active.
     Use this to understand the context of the current FPL week.
     """
-    data = _ensure_data()
+    data, error = _load_data_or_error()
+    if error:
+        return error
     gw = data["current_gw"]
 
     is_stale = data.get("is_stale", False)
