@@ -220,18 +220,22 @@ def format_squad_summary(result: dict) -> str:
     The agent uses this to present results to the user.
     """
     lines = []
-    lines.append(f"Formation: {result['formation']} | Budget: £{result['total_cost']}m / £100.0m "
-                 f"(£{result['remaining_budget']}m remaining)")
-    lines.append(f"Captain: {result['captain']['name']} | Vice: {result['vice_captain']['name']}")
+    budget_limit = round(result.get("total_cost", 0) + result.get("remaining_budget", 0), 1)
+    captain_name = result.get("captain", {}).get("name", "N/A")
+    vice_name = result.get("vice_captain", {}).get("name", "N/A")
+
+    lines.append(f"Formation: {result.get('formation', 'N/A')} | Budget: £{result.get('total_cost', 0)}m / "
+                 f"£{budget_limit}m (£{result.get('remaining_budget', 0)}m remaining)")
+    lines.append(f"Captain: {captain_name} | Vice: {vice_name}")
     lines.append("")
 
     # Starting XI by position
     lines.append("STARTING XI:")
     for pos in ["GKP", "DEF", "MID", "FWD"]:
-        pos_players = [p for p in result["starting_xi"] if p["position"] == pos]
+        pos_players = [p for p in result.get("starting_xi", []) if p["position"] == pos]
         for p in sorted(pos_players, key=lambda x: x.get("score", 0), reverse=True):
-            captain_tag = " (C)" if p["name"] == result["captain"]["name"] else ""
-            vice_tag = " (VC)" if p["name"] == result["vice_captain"]["name"] else ""
+            captain_tag = " (C)" if p["name"] == captain_name else ""
+            vice_tag = " (VC)" if p["name"] == vice_name else ""
             conf = p.get("confidence", "")
             lines.append(
                 f"  {pos} | {p['name']}{captain_tag}{vice_tag} | {p['team']} | "
@@ -239,7 +243,7 @@ def format_squad_summary(result: dict) -> str:
             )
 
     lines.append("\nBENCH:")
-    for p in result["bench"]:
+    for p in result.get("bench", []):
         lines.append(f"  {p['position']} | {p['name']} | {p['team']} | £{p['price']}m")
 
     if result["issues"]:
