@@ -1,5 +1,7 @@
 # ⚽ FantasyEdge — Agentic FPL Analyst
 
+🔗 **[Live Demo (Streamlit Cloud)](https://fantasyedge.streamlit.app/)**
+
 An AI agent that autonomously analyzes Fantasy Premier League data to help you pick optimal teams. Unlike a fixed pipeline, the agent **decides its own actions** based on your question — choosing which tools to call, in what order, and when to stop.
 
 Built with LangGraph's ReAct pattern: the LLM reasons, acts, observes, and loops until it has enough information to answer.
