@@ -7,7 +7,7 @@ It uses LangGraph's ReAct pattern where the LLM autonomously decides which tools
 to call based on the user's question — NOT a fixed pipeline.
 
 The project exists at: fantasyedge-v2/ on Abhay's local machine (Windows, VS Code)
-LLM Provider: Groq (free tier, model: llama-3.3-70b-versatile)
+LLM Provider: Groq (free tier, model: gpt-oss-120b)
 FPL API: https://fantasy.premierleague.com/api/ (free, no auth needed)
 
 ## PROJECT STRUCTURE

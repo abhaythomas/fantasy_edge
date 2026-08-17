@@ -137,7 +137,7 @@ python -m eval.evaluator
 | Component | Technology | Why |
 |-----------|-----------|-----|
 | Agent Orchestration | **LangGraph (ReAct)** | Autonomous reasoning loop with tool calling |
-| LLM | **Groq (Llama 3.3 70B)** | Free, fast — only used for reasoning + final report |
+| LLM | **Groq (gpt-oss-120b)** | Free, fast — only used for reasoning + final report |
 | Data Source | **FPL API** | Free, real-time, no auth needed |
 | Scoring | **Custom Python** | Documented formula, not LLM guesswork |
 | Optimization | **Greedy + constraints** | Algorithmic, guarantees valid squads |
