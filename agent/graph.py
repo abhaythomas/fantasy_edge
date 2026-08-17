@@ -29,7 +29,7 @@ from agent.memory import load_preferences, get_squad_state_summary
 
 load_dotenv()
 
-GROQ_MODEL = "gpt-oss-120b"
+GROQ_MODEL = "openai/gpt-oss-120b"
 
 # ── System Prompt ────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are FantasyEdge, an expert Fantasy Premier League analyst agent.
