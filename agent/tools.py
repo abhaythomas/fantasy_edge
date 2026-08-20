@@ -232,9 +232,14 @@ def build_squad(
     budget: float = 100.0,
     save_result: bool = False,
 ) -> str:
-    """Build an optimal 15-player FPL squad within all constraints.
+    """Build an optimal 15-player FPL squad in one comprehensive operation.
 
-    The optimizer uses our scoring engine to select the best valid squad:
+    Use this tool immediately for any broad request to pick, create, or rebuild a
+    complete team. Do not call player, fixture, gameweek, or availability tools first:
+    this tool already loads current FPL data and uses the scoring engine's form,
+    expected involvement, value, upcoming fixtures, availability, and momentum data.
+
+    The optimizer selects the best valid squad while enforcing:
     - Budget: £100.0m (or custom)
     - Positions: 2 GKP, 5 DEF, 5 MID, 3 FWD
     - Max 3 players from any team

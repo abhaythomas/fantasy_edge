@@ -15,21 +15,24 @@ An agent adapts its behavior to each query.
 """
 
 import os
+import re
 from typing import Annotated, TypedDict
 from dotenv import load_dotenv
 
 from langchain_groq import ChatGroq
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
-from agent.tools import ALL_TOOLS
+from agent.tools import ALL_TOOLS, build_squad
 from agent.memory import load_preferences, get_squad_state_summary
 
 load_dotenv()
 
 GROQ_MODEL = "openai/gpt-oss-120b"
+MAX_HISTORY_TURNS = 4
+AGENT_RECURSION_LIMIT = 12
 
 # ── System Prompt ────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are FantasyEdge, an expert Fantasy Premier League analyst agent.
@@ -39,9 +42,11 @@ You have access to tools that give you LIVE FPL data. Use them to answer questio
 IMPORTANT RULES:
 1. ALWAYS use tools to get data. Never make up player stats or prices.
 2. Use the scoring system's composite scores to rank players, not just one metric.
-3. When building a squad, ALWAYS use the build_squad tool — it enforces FPL constraints.
-   Never try to manually select 15 players, you'll violate budget or position rules.
-4. Check availability for any player you're recommending — don't pick injured players.
+3. For broad requests to pick, create, or rebuild a full team, call build_squad immediately
+   and exactly once with save_result=true. build_squad already loads live data, scores every
+   player using fixtures and availability, applies memory, and enforces all FPL constraints.
+   Do NOT call get_gameweek_info, get_player_stats, get_fixtures, or check_availability first.
+4. For individual-player recommendations, check availability before recommending the player.
 5. When recommending a captain, explain WHY with specific stats.
 6. For every pick, mention the confidence level (HIGH/MEDIUM/LOW) from the scoring engine.
 7. If the user has preferences stored, respect them (check with manage_memory tool).
@@ -51,7 +56,7 @@ Score = form×3 + xGI×2.5 + value×1.5 + fixture_ease×2 + availability×5 + mo
 Confidence = based on minutes played, form-xG agreement, fixture clarity, and fitness.
 
 YOUR APPROACH:
-- For broad questions ("pick my team"): check gameweek → get top players → check fixtures → check availability → build squad
+- For broad questions ("pick my team"): call build_squad(save_result=true) directly, then present its result
 - For specific questions ("is Salah worth it?"): look up that player + check fixtures
 - For transfers ("who should I replace Saka with?"): check Saka's status → find alternatives at same position/price
 - Always think step-by-step and explain your reasoning.
@@ -98,6 +103,60 @@ def _get_system_message() -> SystemMessage:
     return SystemMessage(content=prompt)
 
 
+def compact_history(messages: list, max_turns: int = MAX_HISTORY_TURNS) -> list:
+    """Keep recent conversation turns without replaying old tool traces.
+
+    Tool calls and tool results are useful while a request is executing, but replaying
+    them on every later request quickly consumes the provider's token-per-minute quota.
+    Completed turns are represented by their user message and final assistant answer.
+    """
+    if not messages:
+        return []
+
+    compacted = []
+    for message in messages:
+        if isinstance(message, (SystemMessage, ToolMessage)):
+            continue
+        if isinstance(message, AIMessage) and getattr(message, "tool_calls", None):
+            continue
+        if isinstance(message, (HumanMessage, AIMessage)) and message.content:
+            compacted.append(message)
+
+    human_indexes = [
+        index for index, message in enumerate(compacted)
+        if isinstance(message, HumanMessage)
+    ]
+    if len(human_indexes) <= max_turns:
+        return compacted
+
+    return compacted[human_indexes[-max_turns]:]
+
+
+def is_full_squad_request(messages: list) -> bool:
+    """Identify explicit requests for a complete team rather than one player."""
+    latest_user_text = next(
+        (
+            str(message.content).lower()
+            for message in reversed(messages)
+            if isinstance(message, HumanMessage)
+        ),
+        "",
+    )
+    if not latest_user_text:
+        return False
+
+    explicit_phrases = ("full squad", "complete squad", "15-player", "starting xi")
+    if any(phrase in latest_user_text for phrase in explicit_phrases):
+        return True
+
+    return bool(re.search(
+        r"\b(?:pick|build|create|rebuild|select)\s+"
+        r"(?:(?:me|for me)\s+)?(?:a\s+|my\s+|the\s+|best\s+|optimal\s+)?"
+        r"(?:team|squad)\b",
+        latest_user_text,
+    ))
+
+
 def build_agent():
     """
     Build the ReAct agent graph.
@@ -118,8 +177,14 @@ def build_agent():
     and produces a final text response without calling any tool.
     """
     # Initialize LLM with tools
-    llm = ChatGroq(model=GROQ_MODEL, temperature=0)
+    llm = ChatGroq(
+        model=GROQ_MODEL,
+        temperature=0,
+        max_tokens=1200,
+        max_retries=1,
+    )
     llm_with_tools = llm.bind_tools(ALL_TOOLS)
+    squad_router = llm.bind_tools([build_squad], tool_choice="build_squad")
 
     # ── Agent Node ───────────────────────────────────────────────────
     def agent_node(state: AgentState):
@@ -130,7 +195,16 @@ def build_agent():
         if not any(isinstance(m, SystemMessage) for m in messages):
             messages = [_get_system_message()] + messages
 
-        response = llm_with_tools.invoke(messages)
+        last_message = state["messages"][-1]
+        if isinstance(last_message, HumanMessage) and is_full_squad_request(messages):
+            # A full squad is a deterministic optimizer operation. Force the single
+            # comprehensive tool instead of spending model calls planning sub-steps.
+            response = squad_router.invoke(messages)
+        elif isinstance(last_message, ToolMessage) and last_message.name == "build_squad":
+            # The optimized squad is complete; use one tool-free call to present it.
+            response = llm.invoke(messages)
+        else:
+            response = llm_with_tools.invoke(messages)
         return {"messages": [response]}
 
     # ── Should Continue? ─────────────────────────────────────────────
@@ -186,14 +260,15 @@ def chat(message: str, history: list = None) -> dict:
     agent = build_agent()
 
     # Build message list with history
-    messages = []
-    if history:
-        messages.extend(history)
+    messages = compact_history(history or [])
     messages.append(HumanMessage(content=message))
 
     # Run the agent
     try:
-        result = agent.invoke({"messages": messages}, config={"recursion_limit": 40})
+        result = agent.invoke(
+            {"messages": messages},
+            config={"recursion_limit": AGENT_RECURSION_LIMIT},
+        )
     except Exception as e:
         return {
             "response": (

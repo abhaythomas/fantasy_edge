@@ -27,7 +27,8 @@ try:
 except Exception:
     pass
 
-from agent.graph import build_agent
+from agent.graph import build_agent, compact_history, AGENT_RECURSION_LIMIT
+from agent.errors import rate_limit_message
 from agent.memory import get_preferences_summary, get_squad_state_summary
 
 # ── Page Config ──────────────────────────────────────────────────────
@@ -574,10 +575,13 @@ if user_input:
     with st.chat_message("assistant"):
         try:
             with st.spinner("Thinking..."):
-                agent_messages = list(st.session_state.agent_history)
+                agent_messages = compact_history(st.session_state.agent_history)
                 agent_messages.append(HumanMessage(content=user_input))
 
-                result = st.session_state.agent.invoke({"messages": agent_messages})
+                result = st.session_state.agent.invoke(
+                    {"messages": agent_messages},
+                    config={"recursion_limit": AGENT_RECURSION_LIMIT},
+                )
                 all_messages = result["messages"]
 
                 tool_calls = []
@@ -628,7 +632,7 @@ if user_input:
         except Exception as e:
             error_msg = str(e)
             if "rate_limit" in error_msg.lower() or "429" in error_msg:
-                st.warning("Rate limit reached — please wait 60 seconds and try again.")
+                st.warning(rate_limit_message(e))
             else:
                 st.error(f"Something went wrong: {error_msg}")
 
