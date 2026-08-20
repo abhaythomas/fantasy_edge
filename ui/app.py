@@ -2,7 +2,7 @@
 ui/app.py — FantasyEdge Streamlit Frontend
 
 Features:
-- Football analytics platform aesthetic (deep green sidebar)
+- Clean graphite analytics interface with emerald accents
 - Player card rendering when squad is returned
 - Visible tool calls as compact pills
 - Reasoning trace toggle
@@ -31,140 +31,240 @@ from agent.graph import build_agent
 from agent.memory import get_preferences_summary, get_squad_state_summary
 
 # ── Page Config ──────────────────────────────────────────────────────
-st.set_page_config(page_title="FantasyEdge", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="FantasyEdge", layout="wide")
 
 # ── Custom CSS ───────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500&display=swap');
+:root {
+    --fe-bg: #0b0f0e;
+    --fe-sidebar: #0e1412;
+    --fe-surface: #121816;
+    --fe-surface-raised: #17201d;
+    --fe-border: #26312d;
+    --fe-border-strong: #34413c;
+    --fe-text: #e8efec;
+    --fe-muted: #8f9d97;
+    --fe-accent: #34d399;
+    --fe-accent-soft: rgba(52, 211, 153, 0.1);
+    --fe-radius: 8px;
+}
+
+html, body, [class*="css"] {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.stApp { background: var(--fe-bg); }
+
+[data-testid="stAppViewContainer"] > .main .block-container {
+    max-width: 1120px;
+    padding: 2.25rem 2.5rem 7rem;
+}
+
+[data-testid="stHeader"] { background: transparent; }
+
+h1, h2, h3 {
+    color: var(--fe-text) !important;
+    letter-spacing: -0.025em;
+}
+
+h1 {
+    font-size: clamp(2rem, 4vw, 3rem) !important;
+    line-height: 1.05 !important;
+    font-weight: 700 !important;
+    margin-bottom: 0.35rem !important;
+}
+
+[data-testid="stCaptionContainer"] { color: var(--fe-muted); }
+hr { border-color: var(--fe-border) !important; }
 
 [data-testid="stSidebar"] {
-    background: #0d2b1a !important;
-}
-[data-testid="stSidebar"] * {
-    color: rgba(255,255,255,0.75) !important;
-}
-[data-testid="stSidebar"] .stButton button {
-    background: rgba(255,255,255,0.05) !important;
-    border: 0.5px solid rgba(255,255,255,0.1) !important;
-    color: rgba(255,255,255,0.6) !important;
-    font-size: 12px !important;
-    border-radius: 6px !important;
-    text-align: left !important;
-}
-[data-testid="stSidebar"] .stButton button:hover {
-    background: rgba(168,232,144,0.1) !important;
-    color: #a8e890 !important;
-    border-color: rgba(168,232,144,0.3) !important;
-}
-[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3, [data-testid="stSidebar"] .stMarkdown strong {
-    color: #a8e890 !important;
-}
-[data-testid="stSidebar"] [data-testid="stExpander"] {
-    background: rgba(255,255,255,0.04) !important;
-    border: 0.5px solid rgba(255,255,255,0.08) !important;
-    border-radius: 8px !important;
+    background: var(--fe-sidebar) !important;
+    border-right: 1px solid var(--fe-border);
 }
 
-h1 { font-family: 'Barlow Condensed', sans-serif !important; letter-spacing: 0.5px; }
+[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+    padding-top: 1.25rem;
+}
 
-.tool-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+[data-testid="stSidebar"] h2 {
+    color: var(--fe-text) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em;
+}
+
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
+    color: #b5c0bb;
+}
+
+.stButton button {
+    min-height: 2.5rem;
+    background: var(--fe-surface) !important;
+    border: 1px solid var(--fe-border) !important;
+    border-radius: var(--fe-radius) !important;
+    color: #c9d3cf !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    box-shadow: none !important;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.stButton button:hover {
+    background: var(--fe-surface-raised) !important;
+    border-color: var(--fe-border-strong) !important;
+    color: var(--fe-text) !important;
+}
+
+.stButton button:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--fe-accent) !important;
+    outline-offset: 2px !important;
+}
+
+[data-testid="stSidebar"] .stButton button { text-align: left !important; }
+
+[data-testid="stExpander"] {
+    background: var(--fe-surface) !important;
+    border: 1px solid var(--fe-border) !important;
+    border-radius: var(--fe-radius) !important;
+    box-shadow: none !important;
+}
+
+[data-testid="stExpander"] summary:hover { color: var(--fe-accent) !important; }
+
+[data-testid="stChatMessage"] {
+    background: var(--fe-surface);
+    border: 1px solid var(--fe-border);
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    padding: 0.35rem 0.5rem;
+    box-shadow: none;
+}
+
+[data-testid="stChatMessage"] p:last-child { margin-bottom: 0; }
+
+[data-testid="stChatInput"] {
+    background: var(--fe-surface) !important;
+    border: 1px solid var(--fe-border-strong) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24) !important;
+}
+
+[data-testid="stChatInput"]:focus-within { border-color: var(--fe-accent) !important; }
+
+[data-testid="stAlert"] {
+    border: 1px solid var(--fe-border) !important;
+    border-radius: var(--fe-radius) !important;
+}
+
+.tool-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .tool-pill {
-    font-size: 11px;
-    background: #f0f4f0;
-    color: #2a5a2a;
-    border: 0.5px solid #c8dfc8;
-    border-radius: 20px;
-    padding: 2px 10px;
-    font-family: 'Barlow', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: var(--fe-accent-soft);
+    color: #7ee7bb;
+    border: 1px solid rgba(52, 211, 153, 0.22);
+    border-radius: 5px;
+    padding: 3px 8px;
 }
 
-.squad-wrap { margin-top: 12px; }
+.squad-wrap { margin-top: 16px; }
 
 .squad-header {
-    background: #0d2b1a;
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 12px;
+    background: var(--fe-surface-raised);
+    border: 1px solid var(--fe-border);
+    border-left: 3px solid var(--fe-accent);
+    border-radius: var(--fe-radius);
+    padding: 12px 14px;
+    margin-bottom: 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 16px;
 }
 .squad-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
-    color: #a8e890;
+    color: var(--fe-text);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.07em;
 }
-.squad-meta { font-size: 11px; color: rgba(168,232,144,0.55); }
+.squad-meta { font-size: 11px; color: var(--fe-muted); }
 
-.position-section { margin-bottom: 10px; }
+.position-section { margin-bottom: 16px; }
 .position-label {
     font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #888;
-    margin-bottom: 6px;
-    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--fe-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
 }
-.cards-row { display: flex; flex-wrap: wrap; gap: 7px; }
+.cards-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+    gap: 8px;
+}
 
 .player-card {
-    background: #ffffff;
-    border: 0.5px solid #e0e0e0;
-    border-radius: 8px;
-    width: 92px;
+    background: var(--fe-surface);
+    border: 1px solid var(--fe-border);
+    border-radius: var(--fe-radius);
+    min-width: 0;
     overflow: hidden;
     position: relative;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    box-shadow: none;
 }
-.player-card.captain  { border: 1.5px solid #d4a017; }
-.player-card.vice     { border: 1.5px solid #888; }
-.player-card.bench    { opacity: 0.6; }
+.player-card.captain  { border-color: #d6a846; }
+.player-card.vice     { border-color: #788680; }
+.player-card.bench    { opacity: 0.62; }
 
-.pos-strip { height: 3px; width: 100%; }
-.pos-strip.GKP { background: #e8a020; }
-.pos-strip.DEF { background: #1a9e5a; }
-.pos-strip.MID { background: #1a6ebe; }
-.pos-strip.FWD { background: #c0392b; }
+.pos-strip { height: 2px; width: 100%; }
+.pos-strip.GKP { background: #d6a846; }
+.pos-strip.DEF { background: #34d399; }
+.pos-strip.MID { background: #60a5fa; }
+.pos-strip.FWD { background: #f87171; }
 
-.card-body { padding: 6px 7px 7px; }
+.card-body { padding: 9px 10px 10px; }
 
-.card-pos { font-size: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 1px; }
-.card-pos.GKP { color: #b07010; }
-.card-pos.DEF { color: #0f7a40; }
-.card-pos.MID { color: #1050a0; }
-.card-pos.FWD { color: #a02010; }
+.card-pos { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 3px; }
+.card-pos.GKP { color: #e5bd68; }
+.card-pos.DEF { color: #6ee7b7; }
+.card-pos.MID { color: #93c5fd; }
+.card-pos.FWD { color: #fca5a5; }
 
 .card-name {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    color: #1a1a1a;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--fe-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.1;
+    line-height: 1.25;
 }
 .card-team {
     font-size: 9px;
-    color: #888;
-    margin-top: 1px;
+    color: var(--fe-muted);
+    margin-top: 2px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.card-divider { height: 0.5px; background: #eee; margin: 5px 0; }
+.card-divider { height: 1px; background: var(--fe-border); margin: 8px 0; }
 .card-stats { display: flex; justify-content: space-between; align-items: center; }
-.card-price { font-size: 10px; font-weight: 500; color: #333; }
+.card-price { font-size: 10px; font-weight: 600; color: #cbd5d1; }
 
-.conf-badge { font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 4px; }
-.conf-HIGH   { background: #e8f5e2; color: #2e6b10; }
-.conf-MEDIUM { background: #fef3e0; color: #8a5a0a; }
-.conf-LOW    { background: #fce8e8; color: #902020; }
+.conf-badge { font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 4px; letter-spacing: 0.03em; }
+.conf-HIGH   { background: rgba(52, 211, 153, 0.12); color: #6ee7b7; }
+.conf-MEDIUM { background: rgba(214, 168, 70, 0.12); color: #e5bd68; }
+.conf-LOW    { background: rgba(248, 113, 113, 0.12); color: #fca5a5; }
 
 .captain-badge, .vice-badge {
     position: absolute;
@@ -174,15 +274,23 @@ h1 { font-family: 'Barlow Condensed', sans-serif !important; letter-spacing: 0.5
     display: flex; align-items: center; justify-content: center;
     font-size: 8px; font-weight: 700; color: #fff;
 }
-.captain-badge { background: #d4a017; }
-.vice-badge    { background: #777; }
+.captain-badge { background: #b8892f; }
+.vice-badge    { background: #59645f; }
 
 .bench-divider {
     display: flex; align-items: center; gap: 8px;
     font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
-    color: #aaa; margin: 10px 0 6px;
+    color: var(--fe-muted); margin: 14px 0 8px;
 }
-.bench-line { flex: 1; height: 0.5px; background: #e0e0e0; }
+.bench-line { flex: 1; height: 1px; background: var(--fe-border); }
+
+@media (max-width: 700px) {
+    [data-testid="stAppViewContainer"] > .main .block-container {
+        padding: 1.5rem 1rem 6rem;
+    }
+    .squad-header { align-items: flex-start; flex-direction: column; gap: 4px; }
+    .cards-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -381,13 +489,13 @@ def render_response(content, tool_calls=None, reasoning=None):
 
     if tool_calls and st.session_state.get("show_reasoning"):
         pills_html = '<div class="tool-pills">' + "".join(
-            f'<span class="tool-pill">⚙ {tc["tool"]}</span>'
+            f'<span class="tool-pill">{tc["tool"]}</span>'
             for tc in tool_calls
         ) + "</div>"
         st.markdown(pills_html, unsafe_allow_html=True)
 
     if reasoning and st.session_state.get("show_reasoning"):
-        with st.expander("🧠 Reasoning trace"):
+        with st.expander("Reasoning trace"):
             for step in reasoning:
                 st.markdown(replace_gw(step))
 
@@ -406,8 +514,8 @@ if "show_reasoning" not in st.session_state:
 
 # ── Sidebar ──────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("## ⚽ FantasyEdge")
-    st.caption("Agentic FPL Analyst · LangGraph + Groq")
+    st.markdown("## FantasyEdge")
+    st.caption("FPL ANALYTICS · AI ASSISTED")
 
     st.divider()
 
@@ -417,7 +525,7 @@ with st.sidebar:
 
     st.divider()
 
-    with st.expander("🧠 Agent Memory"):
+    with st.expander("Agent memory"):
         st.markdown("**Preferences:**")
         st.text(get_preferences_summary())
         st.markdown("**Squad State:**")
@@ -431,15 +539,15 @@ with st.sidebar:
 
     st.divider()
 
-    if st.button("🗑️ Clear conversation", use_container_width=True):
+    if st.button("Clear conversation", use_container_width=True):
         st.session_state.messages = []
         st.session_state.agent_history = []
         st.rerun()
 
 
 # ── Main Chat Area ───────────────────────────────────────────────────
-st.title("⚽ FantasyEdge")
-st.caption("AI-powered FPL analyst — ask anything about your Fantasy Premier League team")
+st.title("FantasyEdge")
+st.caption("AI-powered analysis for smarter Fantasy Premier League decisions")
 
 # Display chat history
 for msg in st.session_state.messages:
@@ -484,14 +592,14 @@ if user_input:
                                 "args": tc.get("args", {}),
                             })
                             reasoning.append(
-                                f"⚙ Called **{tc['name']}**"
+                                f"Called **{tc['name']}**"
                                 f"({', '.join(f'{k}={v}' for k, v in tc.get('args', {}).items() if v)})"
                             )
 
                     if isinstance(msg, ToolMessage):
                         content_preview = str(msg.content)[:300]
                         suffix = "..." if len(str(msg.content)) > 300 else ""
-                        reasoning.append(f"📊 Result: `{content_preview}{suffix}`")
+                        reasoning.append(f"Result: `{content_preview}{suffix}`")
 
                     if isinstance(msg, AIMessage) and msg.content:
                         if not (hasattr(msg, "tool_calls") and msg.tool_calls):
@@ -520,7 +628,7 @@ if user_input:
         except Exception as e:
             error_msg = str(e)
             if "rate_limit" in error_msg.lower() or "429" in error_msg:
-                st.warning("⏳ Rate limit reached — please wait 60 seconds and try again.")
+                st.warning("Rate limit reached — please wait 60 seconds and try again.")
             else:
                 st.error(f"Something went wrong: {error_msg}")
 
